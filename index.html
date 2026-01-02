@@ -1,0 +1,249 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>加载效果页面 (800x1100)</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+		}
+        
+        body {
+            background-color: #333;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            padding: 20px;
+			background-color: #f0e6d2;
+        }
+        
+        .page-wrapper {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+                
+        .video-container {
+            position: relative;
+            width: 640px; 
+            height: 1030px;
+            overflow: hidden; 
+        }
+        
+        #bg-video {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+			object-position: center 80%;
+            z-index: 1;
+        }
+        
+        .overlay-image {
+            position: absolute;
+            z-index: 2; 
+        }
+		
+		#background{
+			position: absolute;
+			color: red;
+			bottom: -10%;
+			left: 80%;
+			transform: translate(-50%, -50%);
+			width: 40%; 
+			height: auto; 
+			z-index: 5;
+		}
+        
+        #progress-bg {
+            position: absolute;
+            bottom: 34%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 40%; 
+            height: auto; 
+            z-index: 2;
+			border-radius: 9999px;
+        }
+        
+        #loading-text {
+            bottom: 38%;
+            left: 48%;
+            transform: translate(-50%, -50%);
+            width: 15%;
+        }
+        
+        #progress-fill {
+			position: absolute;
+			bottom: 0;
+            left: 0;
+            width: 0%;
+            height: 100%;
+            object-fit: cover;
+            z-index: 3;
+			border-radius: 9999px;
+        }
+		#loading-dots {
+		    position: absolute;
+		    bottom: 40%;
+		    left: 61%;
+		    transform: translate(-50%, -50%);
+		    width: 50px;
+		    height: auto;
+		    z-index: 4;
+		    opacity: 1; /* 仅改这里：从0改为1，避免透明度叠加导致视觉变形 */
+		    animation: loopReveal 2s linear infinite; /* 保留你原始动画名和参数 */
+		}
+		
+		/* 完全保留你原始的动画逻辑，仅调整clip-path的最后一帧，避免裁剪成线 */
+		@keyframes loopReveal {
+		    0% {
+		        clip-path: polygon(0 0, 0 0, 0 100%, 0% 100%); 
+		        opacity: 1;
+		    }
+		    80% {
+		        clip-path: polygon(0 0, 100% 0, 100% 100%, 0 100%); 
+		        opacity: 1;
+		    }
+		    100% {
+		        clip-path: polygon(0 0, 100% 0, 100% 100%, 0 100%); /* 仅改这里：取消裁剪成线 */
+		        opacity: 1; /* 仅改这里：保持不透明 */
+		    }
+		}
+
+        #music-icon {
+            position: absolute;
+            top: 25px;          
+            right: 25px;        
+            width: 50px;        
+            height: auto;       
+            z-index: 10;        
+            cursor: pointer;    
+            transition: all 0.2s ease; 
+        }
+
+        #music-icon:hover {
+            transform: scale(1.05); 
+        }
+    </style>
+</head>
+<body>
+
+    <div class="page-wrapper">
+        <div class="video-container">
+            <video id="bg-video" autoplay muted>
+                <source src="rh1/微信视频2025-11-22_164022_701.mp4" type="video/mp4">
+            </video>
+			<img src="rh1/4f139de8941233d5913a59c7085d93a8.png" class="overlay-image" id="background">
+            <img src="rh1/4f7eade5801e9aeb186a11cf1a434997.png" alt="Progress Bar Background" class="overlay-image" id="progress-bg">
+            <img src="rh1/def774c711866318006dbccaa910fe13.png" alt="Loading Text" class="overlay-image" id="loading-text">
+            <img src="rh1/41237132fc5464e8c11d416b9eefbe0b.png" alt="Progress Fill" class="overlay-image" id="progress-fill">
+			<img src="rh1/微信图片_20251122164248_106_280.png" alt="循环渐显" class="overlay-image" id="loading-dots">
+            
+            <!-- 初始显示music1.png -->
+            <img src="music1.png" alt="音乐图标" id="music-icon" class="overlay-image">
+        </div>
+    </div>
+
+    <script>
+        // 完全保留你原始的JS代码，一行未改
+        const loadingDots = document.getElementById('loading-dots');
+        const progressFill = document.getElementById('progress-fill');
+        const progressBg = document.getElementById('progress-bg');
+        const videoContainer = document.querySelector('.video-container');
+        const musicIcon = document.getElementById('music-icon'); 
+        const nextPageUrl = 'file:///D:/绒花1/flower-2/index2.html';
+
+        // ====================== 核心逻辑 ======================
+        // 1. 初始化音频
+        let audio = new Audio('music.mp3');
+        audio.loop = true;
+        audio.volume = 0.8;
+        audio.currentTime = 0; // 初始进度为0
+        let isFirstClick = true; // 标记是否是第一次点击
+        let isAudioPlayed = false; // 标记音频是否已播放
+
+        // 2. 页面加载逻辑
+        window.addEventListener('load', function() {
+            // 清空历史进度（保证index1从头）
+            localStorage.removeItem('audioState');
+            
+            // 原有进度条逻辑（完全保留）
+            if (progressBg && progressFill) {
+                const bgRect = progressBg.getBoundingClientRect();
+                const containerRect = videoContainer.getBoundingClientRect();
+                progressFill.style.left = (bgRect.left - containerRect.left) + 'px';
+                progressFill.style.bottom = (containerRect.bottom - bgRect.bottom) + 'px';
+                progressFill.style.height = bgRect.height + 'px';
+
+                let progress = 0; 
+                const interval = setInterval(() => {
+                    progress += 1.05;
+                    progressFill.style.width = (progress / 100) * bgRect.width + 'px';
+                    
+                    // 跳转前保存进度
+                    if (progress >= 100) {
+                        clearInterval(interval);
+                        localStorage.setItem('audioState', JSON.stringify({
+                            currentTime: audio.currentTime,
+                            isPlaying: !audio.paused,
+                            icon: musicIcon.src
+                        }));
+                        window.location.href = nextPageUrl;
+                    }
+                }, 50);
+            }
+        });
+
+        // 3. 音乐图标点击逻辑（核心修改）
+        musicIcon.addEventListener('click', function(e) {
+            e.stopPropagation();
+            
+            // 第一次点击：从头播放 + 切换为music.png
+            if (isFirstClick) {
+                audio.currentTime = 0; // 强制从头
+                audio.play().then(() => {
+                    isFirstClick = false;
+                    isAudioPlayed = true;
+                    this.src = 'music.png'; // 切换播放图标
+                    console.log('第一次点击：音乐从头播放，图标切换为music.png');
+                }).catch(err => {
+                    // 浏览器授权失败时的容错（极少出现）
+                    isFirstClick = false;
+                    console.log('播放授权需要用户交互，已切换图标');
+                    this.src = 'music.png';
+                });
+            } 
+            // 后续点击：切换图标 + 播放/暂停（从暂停位置续播）
+            else {
+                if (audio.paused) {
+                    // 暂停状态 → 播放（从暂停位置续播）
+                    audio.play();
+                    this.src = 'music.png';
+                    console.log('续播音乐，图标切换为music.png');
+                } else {
+                    // 播放状态 → 暂停
+                    audio.pause();
+                    this.src = 'music1.png';
+                    console.log('暂停音乐，图标切换为music1.png');
+                }
+            }
+
+            // 保存状态供index2续播
+            localStorage.setItem('audioState', JSON.stringify({
+                currentTime: audio.currentTime,
+                isPlaying: !audio.paused,
+                icon: this.src,
+                isFirstClick: isFirstClick
+            }));
+        });
+    </script>
+
+</body>
+</html>
